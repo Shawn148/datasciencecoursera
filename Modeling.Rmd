@@ -1,0 +1,64 @@
+---
+title: "Project Modeling"
+author: "XW"
+date: "October 25, 2015"
+output: html_document
+---
+
+#Summary
+Both training and testing data sets were read into R objects. After some exploratory analysis on the original data set, I cleaned up the data set by removing many NA and umimportant columns from the data sets. 
+The original training data set was split into training_1 (75%) and testing_1 (25%) sets. rpart and randomForest algorisum were used to build classification models. The prediction statistics of the rf based model_2 showed better in all the listed items by the confusionMatrix function, which was picked to do the prediction on the 20 test cases. The final prediction results from the rf basesd model_2 was:
+ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 
+ B  A  B  A  A  E  D  B  A  A  B  C  B  A  E  E  A  B  B  B 
+
+
+## Load data sets and required packages into R
+Set the workspace to the folder where I saved the downloaded data sets, and then load the R packages and read the data sets into R. Set all missing values or blanks as NAs.
+```{r}
+setwd("W:/My Documents/R-applications/8-Practical Machine Learning/Project-PML")
+library(rpart)
+library(rpart.plot)
+library(caret); library(randomForest)
+
+train.data <- read.csv(file.choose(), na.strings=c("NA","#DIV/0!", ""))
+test.data <- read.csv(file.choose(), na.string=c("NA", "#DIV/0!", ""))
+```
+## Exploratory analysis and cleanup of the data sets
+Use common R codes such as names(), dim(), str(), head(), tail(), and summary() etc. to explore the training and testing data set.Remove columns with zero or NAs or not helpful with the modeling process.
+```{r}
+training <-train.data[, colSums(is.na(train.data)) == 0]
+testing <-test.data[, colSums(is.na(test.data)) == 0]
+## remove the first 7 columns that are obviously not helpful with the modeling
+training   <-training[,-c(1:7)]
+testing <-testing[,-c(1:7)]
+```
+## Spliting the training data into training and testing
+```{r}
+inTrain <- createDataPartition(y=training$classe, p=0.75, list=FALSE)
+training_1 <- training[inTrain, ]
+testing_1 <- training[-inTrain, ]
+```
+## Test and Compare models
+```{r}
+model_1 <- rpart(classe ~ ., data=training_1, method="class")
+# Predicting with the partitioned testing set
+pred_1 <- predict(model_1, testing_1, type = "class")
+# Plot of the Decision Tree from rpart model
+rpart.plot(model_1, main="Classification Tree", extra=101, under=TRUE, faclen=3)
+# statistics on the testing data set
+confusionMatrix(pred_1, testing_1$class)
+
+# Try randomForest package on the training_1 data
+model_2 <- randomForest(classe ~. , data=training_1, method="class")
+# Predicting on the testing-1 data using randomForest model_2
+pred_2 <- predict(model_2, testing_1, type = "class")
+# Prediction statistics on the testing_1 data set
+confusionMatrix(pred_2, testing_1$classe)
+```
+
+## Prediction outcomes on the test data using randomForest model_2
+As shown by the confusionMatrix of both rpart and rf models, the model_2 with rf has better predicting statistics than the rpart based model_1. Therefore, model_2 is choosen to do the prediction on the test set.
+```{r}
+pred_final <- predict(model_2, testing, type="class")
+pred_final
+```
